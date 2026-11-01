@@ -7,6 +7,7 @@ using Headless Chromium with zero text clipping and high-contrast dark themes.
 
 import os
 import sys
+import glob
 import argparse
 import subprocess
 from pathlib import Path
@@ -40,19 +41,153 @@ body {
   page-break-inside: avoid;
   position: relative;
   overflow: hidden;
-  padding: 50px 70px;
+  padding: 60px 80px;
   display: flex;
   flex-direction: column;
   justify-content: space-between;
-  background: radial-gradient(circle at 80% 20%, rgba(30, 58, 138, 0.22) 0%, #060911 70%);
+  background: radial-gradient(circle at 85% 15%, rgba(30, 58, 138, 0.25) 0%, #060911 70%);
+}
+
+.title-badge {
+  display: inline-block;
+  padding: 6px 14px;
+  border-radius: 9999px;
+  background: rgba(59, 130, 246, 0.15);
+  border: 1px solid rgba(59, 130, 246, 0.4);
+  color: #60A5FA;
+  font-size: 14px;
+  font-weight: 700;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  margin-bottom: 20px;
+}
+
+h1 {
+  font-size: 56px;
+  font-weight: 800;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
+  color: #FFFFFF;
+}
+
+p.subtitle {
+  font-size: 24px;
+  color: #94A3B8;
+  margin-top: 16px;
+  max-width: 900px;
+  line-height: 1.4;
+}
+
+.grid-3 {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 28px;
+  margin-top: 40px;
+}
+
+.card {
+  background: rgba(15, 23, 42, 0.65);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 16px;
+  padding: 32px;
+}
+
+.card h3 {
+  font-size: 22px;
+  font-weight: 700;
+  color: #F1F5F9;
+  margin-bottom: 12px;
+}
+
+.card p {
+  font-size: 16px;
+  color: #94A3B8;
+  line-height: 1.5;
+}
+
+.metric {
+  font-size: 48px;
+  font-weight: 900;
+  color: #38BDF8;
+  margin-bottom: 8px;
+}
+
+.footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  font-size: 14px;
+  color: #475569;
+  border-top: 1px solid rgba(255, 255, 255, 0.06);
+  padding-top: 20px;
 }
 """
 
+SAMPLE_DECK_HTML = f"""<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Executive Strategic Deck</title>
+  <style>
+{DEFAULT_CSS}
+  </style>
+</head>
+<body>
+  <!-- Slide 1: Cover -->
+  <section class="slide">
+    <div>
+      <span class="title-badge">Strategic Roadmap</span>
+      <h1>Autonomous AI Agent Ecosystem<br><span style="color: #38BDF8;">Executive Briefing</span></h1>
+      <p class="subtitle">Next-generation orchestration, self-healing cron daemons, and zero-token intelligence.</p>
+    </div>
+    <div class="footer">
+      <span>Executive Steering Committee</span>
+      <span>Confidential • 2026</span>
+    </div>
+  </section>
+
+  <!-- Slide 2: Metrics -->
+  <section class="slide">
+    <div>
+      <span class="title-badge">Operational Performance</span>
+      <h1>Key Growth Indicators</h1>
+      <div class="grid-3">
+        <div class="card">
+          <div class="metric">12+</div>
+          <h3>Active Repositories</h3>
+          <p>Autonomous maintenance with daily compiler checks and continuous refactoring.</p>
+        </div>
+        <div class="card">
+          <div class="metric">0 Token</div>
+          <h3>Local RAG Search</h3>
+          <p>Instant BM25 ranking across knowledge notes without cloud vector DB overhead.</p>
+        </div>
+        <div class="card">
+          <div class="metric">99.9%</div>
+          <h3>Telegram Delivery</h3>
+          <p>Reliable division thread routing through dedicated Bot API forum topics.</p>
+        </div>
+      </div>
+    </div>
+    <div class="footer">
+      <span>Page 2 / 2</span>
+      <span>Autonomous Agent Engine</span>
+    </div>
+  </section>
+</body>
+</html>
+"""
+
 def find_chromium():
+    # Dynamic search in Playwright cache
+    pw_matches = glob.glob("/opt/data/home/.cache/ms-playwright/chromium-*/chrome-linux64/chrome")
+    if pw_matches:
+        return sorted(pw_matches)[-1]
+        
     candidates = [
-        "/opt/data/home/.cache/ms-playwright/chromium-1247/chrome-linux64/chrome",
         "/usr/bin/chromium-browser",
         "/usr/bin/google-chrome",
+        "/usr/bin/chromium",
         "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
     ]
     for c in candidates:
@@ -86,11 +221,23 @@ def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None
 
 def main():
     parser = argparse.ArgumentParser(description="Apple Keynote / Linear Tier HTML-to-PDF Slide Deck Compiler.")
-    parser.add_argument("input", help="Path to input HTML slide deck")
+    parser.add_argument("input", nargs="?", help="Path to input HTML slide deck")
     parser.add_argument("--output", "-o", default="output.pdf", help="Destination PDF file path (default: output.pdf)")
     parser.add_argument("--chrome", help="Custom Chromium / Chrome executable binary path")
+    parser.add_argument("--scaffold", metavar="FILENAME", help="Scaffold a new executive HTML slide deck boilerplate")
 
     args = parser.parse_args()
+
+    if args.scaffold:
+        out_file = Path(args.scaffold)
+        out_file.write_text(SAMPLE_DECK_HTML, encoding="utf-8")
+        print(f"[✓] Scaffolded executive HTML presentation template to: {out_file.resolve()}")
+        sys.exit(0)
+
+    if not args.input:
+        parser.print_help()
+        sys.exit(1)
+
     success = render_html_to_pdf(args.input, args.output, args.chrome)
     sys.exit(0 if success else 1)
 
