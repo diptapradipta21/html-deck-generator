@@ -19,9 +19,19 @@ Tools like Marp, Reveal.js, and Slidev frequently break when compiling AI-genera
 ## ⚡ Quick Start
 
 ```bash
-# Compile HTML slides to PDF
+# 1. Scaffold a fresh executive presentation deck
+python3 generator.py --scaffold presentation.html
+
+# 2. Compile HTML slides to pixel-perfect 16:9 PDF
 python3 generator.py presentation.html -o Boardroom_Deck.pdf
 ```
+
+---
+
+## 🛠️ Features
+- **Dynamic Chromium Discovery:** Auto-detects Playwright cache, headless Linux Chromium, and Google Chrome binaries.
+- **Instant Scaffolding:** `--scaffold` generates a ready-to-present executive deck with typography, cards, and dark gradients.
+- **Zero-Clipping Compositor:** Uses `--headless=new` and `--run-all-compositor-stages-before-draw` to prevent partial font renders.
 
 ---
 
