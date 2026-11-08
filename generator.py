@@ -10,6 +10,7 @@ import sys
 import glob
 import argparse
 import subprocess
+import shutil
 from pathlib import Path
 
 DEFAULT_CSS = """
@@ -183,7 +184,13 @@ def find_chromium():
     pw_matches = glob.glob("/opt/data/home/.cache/ms-playwright/chromium-*/chrome-linux64/chrome")
     if pw_matches:
         return sorted(pw_matches)[-1]
-        
+
+    # Dynamic search in system PATH
+    for bin_name in ["chromium-browser", "google-chrome", "chromium", "google-chrome-stable", "chrome"]:
+        found = shutil.which(bin_name)
+        if found:
+            return found
+
     candidates = [
         "/usr/bin/chromium-browser",
         "/usr/bin/google-chrome",
@@ -225,8 +232,16 @@ def main():
     parser.add_argument("--output", "-o", default="output.pdf", help="Destination PDF file path (default: output.pdf)")
     parser.add_argument("--chrome", help="Custom Chromium / Chrome executable binary path")
     parser.add_argument("--scaffold", metavar="FILENAME", help="Scaffold a new executive HTML slide deck boilerplate")
+    parser.add_argument("--check-chrome", action="store_true", help="Probe and display detected Chromium/Chrome binary path")
 
     args = parser.parse_args()
+
+    if args.check_chrome:
+        binary = find_chromium()
+        exists = Path(binary).exists() if binary else False
+        status_symbol = "[✓]" if exists else "[!]"
+        print(f"{status_symbol} Detected Chromium binary: {binary} (available: {exists})")
+        sys.exit(0 if exists else 1)
 
     if args.scaffold:
         out_file = Path(args.scaffold)
