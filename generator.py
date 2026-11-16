@@ -203,12 +203,17 @@ def find_chromium():
     return "chrome"
 
 def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None):
-    chrome = chrome_path or find_chromium()
-    in_path = Path(input_html).resolve()
-    out_path = Path(output_pdf).resolve()
+    try:
+        chrome = chrome_path or find_chromium()
+        in_path = Path(input_html).resolve()
+        out_path = Path(output_pdf).resolve()
 
-    print(f"[*] Rendering {in_path.name} to {out_path.name} via Chromium...")
-    cmd = [
+        if not in_path.exists():
+            print(f"[!] Input HTML not found: {in_path}", file=sys.stderr)
+            return False
+
+        print(f"[*] Rendering {in_path.name} to {out_path.name} via Chromium...")
+        cmd = [
         chrome,
         "--headless=new",
         "--no-sandbox",
@@ -218,12 +223,15 @@ def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None
         f"--print-to-pdf={out_path}",
         str(in_path)
     ]
-    res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True)
+    except Exception as e:
+        print(f"[!] Render failed: {e}", file=sys.stderr)
+        return False
     if out_path.exists() and out_path.stat().st_size > 0:
         print(f"[✓] Rendered PDF successfully! ({out_path.stat().st_size / 1024:.1f} KB)")
         return True
     else:
-        print(f"[-] Chromium render failed: {res.stderr}")
+        print(f"[-] Chromium render failed: {res.stderr if 'res' in locals() else 'Unknown error'}", file=sys.stderr)
         return False
 
 def main():
