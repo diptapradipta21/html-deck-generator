@@ -31,6 +31,8 @@ python3 generator.py presentation.html -o Boardroom_Deck.pdf
 ## 🛠️ Features
 - **Dynamic Chromium Discovery:** Auto-detects Playwright cache, headless Linux Chromium, and Google Chrome binaries.
 - **Instant Scaffolding:** `--scaffold` generates a ready-to-present executive deck with typography, cards, and dark gradients.
+- **Render Timeout Guard:** `--timeout SECONDS` (default 120) aborts a hung Chromium process instead of blocking the shell forever.
+- **Safe Scaffolding:** `--scaffold` refuses to clobber an existing deck unless `--force` is passed.
 - **Zero-Clipping Compositor:** Uses `--headless=new` and `--run-all-compositor-stages-before-draw` to prevent partial font renders.
 
 ---

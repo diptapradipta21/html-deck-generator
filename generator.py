@@ -202,7 +202,7 @@ def find_chromium():
             return c
     return "chrome"
 
-def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None):
+def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None, timeout: int = 120):
     try:
         chrome = chrome_path or find_chromium()
         in_path = Path(input_html).resolve()
@@ -223,7 +223,10 @@ def render_html_to_pdf(input_html: str, output_pdf: str, chrome_path: str = None
         f"--print-to-pdf={out_path}",
         str(in_path)
     ]
-        res = subprocess.run(cmd, capture_output=True, text=True)
+        res = subprocess.run(cmd, capture_output=True, text=True, timeout=timeout)
+    except subprocess.TimeoutExpired:
+        print(f"[!] Chromium render timed out after {timeout}s", file=sys.stderr)
+        return False
     except Exception as e:
         print(f"[!] Render failed: {e}", file=sys.stderr)
         return False
@@ -241,6 +244,8 @@ def main():
     parser.add_argument("--chrome", help="Custom Chromium / Chrome executable binary path")
     parser.add_argument("--scaffold", metavar="FILENAME", help="Scaffold a new executive HTML slide deck boilerplate")
     parser.add_argument("--check-chrome", action="store_true", help="Probe and display detected Chromium/Chrome binary path")
+    parser.add_argument("--timeout", type=int, default=120, help="Seconds before the Chromium render is aborted (default: 120)")
+    parser.add_argument("--force", action="store_true", help="Allow --scaffold to overwrite an existing file")
 
     args = parser.parse_args()
 
@@ -253,6 +258,9 @@ def main():
 
     if args.scaffold:
         out_file = Path(args.scaffold)
+        if out_file.exists() and not args.force:
+            print(f"[!] Refusing to overwrite existing file: {out_file} (use --force)", file=sys.stderr)
+            sys.exit(1)
         out_file.write_text(SAMPLE_DECK_HTML, encoding="utf-8")
         print(f"[✓] Scaffolded executive HTML presentation template to: {out_file.resolve()}")
         sys.exit(0)
@@ -261,7 +269,7 @@ def main():
         parser.print_help()
         sys.exit(1)
 
-    success = render_html_to_pdf(args.input, args.output, args.chrome)
+    success = render_html_to_pdf(args.input, args.output, args.chrome, args.timeout)
     sys.exit(0 if success else 1)
 
 if __name__ == "__main__":

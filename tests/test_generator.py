@@ -1,4 +1,5 @@
 #!/usr/bin/env python3
+import subprocess
 import tempfile
 import unittest
 from pathlib import Path
@@ -7,7 +8,7 @@ from unittest.mock import patch
 import sys
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
 
-from generator import find_chromium, SAMPLE_DECK_HTML
+from generator import find_chromium, main, render_html_to_pdf, SAMPLE_DECK_HTML
 
 class TestDeckGenerator(unittest.TestCase):
     def test_sample_deck_html_structure(self):
@@ -36,6 +37,35 @@ class TestDeckGenerator(unittest.TestCase):
             target.write_text(SAMPLE_DECK_HTML, encoding="utf-8")
             self.assertTrue(target.exists())
             self.assertGreater(target.stat().st_size, 500)
+
+    @patch("subprocess.run")
+    def test_render_timeout_returns_false(self, mock_run):
+        mock_run.side_effect = subprocess.TimeoutExpired(cmd="chrome", timeout=1)
+        with tempfile.TemporaryDirectory() as tmpdir:
+            html = Path(tmpdir) / "deck.html"
+            html.write_text(SAMPLE_DECK_HTML, encoding="utf-8")
+            ok = render_html_to_pdf(str(html), str(Path(tmpdir) / "out.pdf"), timeout=1)
+            self.assertFalse(ok)
+
+    def test_scaffold_refuses_overwrite_without_force(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "deck.html"
+            target.write_text("existing deck", encoding="utf-8")
+            with patch.object(sys, "argv", ["generator.py", "--scaffold", str(target)]):
+                with self.assertRaises(SystemExit) as ctx:
+                    main()
+            self.assertEqual(ctx.exception.code, 1)
+            self.assertEqual(target.read_text(encoding="utf-8"), "existing deck")
+
+    def test_scaffold_overwrites_with_force(self):
+        with tempfile.TemporaryDirectory() as tmpdir:
+            target = Path(tmpdir) / "deck.html"
+            target.write_text("existing deck", encoding="utf-8")
+            with patch.object(sys, "argv", ["generator.py", "--scaffold", str(target), "--force"]):
+                with self.assertRaises(SystemExit) as ctx:
+                    main()
+            self.assertEqual(ctx.exception.code, 0)
+            self.assertIn("<!DOCTYPE html>", target.read_text(encoding="utf-8"))
 
 if __name__ == "__main__":
     unittest.main()
